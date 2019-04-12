@@ -208,11 +208,12 @@ func (h Handler) Error(w http.ResponseWriter, e error) {
 		err.Error = "Internal Server Error"
 	}
 
-	bs, _ := json.Marshal(e)
+	bs, _ := json.Marshal(err)
 	w.WriteHeader(err.statusCode)
 	w.Write(bs)
 }
 
+// ResponseTask represents a view model of Task.
 type ResponseTask struct {
 	ID            uuid.UUID           `json:"id" example:"64210195-68be-417e-b439-4fb44c066e1c"`
 	URL           string              `json:"url" example:"http://google.ru"`
@@ -224,6 +225,7 @@ type ResponseTask struct {
 	Error         string              `json:"error,omitempty" example:"fail when read response body"`
 }
 
+// NewResponseTask creates a view model of Task.
 func NewResponseTask(t *internal.Task) *ResponseTask {
 	if t == nil {
 		return nil

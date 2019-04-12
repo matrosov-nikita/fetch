@@ -5,7 +5,10 @@ import (
 	"github.com/satori/go.uuid"
 )
 
+// ErrServiceOverloaded happens when there is no free space in tasks queue.
 var ErrServiceOverloaded = errors.New("too many requests are handling, service overloaded")
+
+// ErrTaskNotFound happens when task not found in memory storage.
 var ErrTaskNotFound = errors.New("could not find task with given id")
 
 type Scheduler struct {
@@ -19,6 +22,7 @@ func worker(tasks <-chan *Task) {
 	}
 }
 
+// NewScheduler creates a new scheduler which manages a task queue.
 func NewScheduler(maxCap, workersCount int, storage *MemoryStorage) *Scheduler {
 	sc := &Scheduler{
 		tasks:   make(chan *Task, maxCap),
@@ -32,6 +36,7 @@ func NewScheduler(maxCap, workersCount int, storage *MemoryStorage) *Scheduler {
 	return sc
 }
 
+// Schedule creates and saves task, adds it to queue.
 func (s Scheduler) Schedule(url, method string, headers map[string]string) (*Task, error) {
 	t, err := NewTask(method, url, headers)
 	if err != nil {
@@ -53,6 +58,7 @@ func (s Scheduler) FindAll() []*Task {
 	return s.storage.FindAll()
 }
 
+// FindById returns task by id or error if it not found.
 func (s *Scheduler) FindById(id uuid.UUID) (*Task, error) {
 	task := s.storage.Find(id)
 	if task == nil {
@@ -62,6 +68,7 @@ func (s *Scheduler) FindById(id uuid.UUID) (*Task, error) {
 	return task, nil
 }
 
+// Delete deletes tasks from storage and cancels if it's in progress.
 func (s *Scheduler) Delete(id uuid.UUID) {
 	task := s.storage.Find(id)
 	if task != nil {

@@ -10,17 +10,25 @@ import (
 )
 
 var (
-	ErrInvalidTaskUrl   = errors.New("given url is invalid")
+	// ErrInvalidTaskUrl happens when parse task url failed.
+	ErrInvalidTaskUrl = errors.New("given url is invalid")
+	// ErrCreateNewRequest happens when creation of http requests fails.
 	ErrCreateNewRequest = errors.New("fail when create a http request")
-	ErrSendRequest      = errors.New("fail when send a http request")
+	// ErrSendRequest happens when http requests fails.
+	ErrSendRequest = errors.New("fail when send a http request")
+	// ErrReadResponseBody happens when reading of response body fails.
 	ErrReadResponseBody = errors.New("fail when read response body")
 )
 
 const (
-	StatusReady      string = "READY"
-	StatusInProgress        = "IN PROGRESS"
-	StatusFinished          = "FINISHED"
-	StatusFailed            = "FAILED"
+	// StatusReady task created but not started yet.
+	StatusReady string = "READY"
+	// StatusInProgress task have started already.
+	StatusInProgress = "IN PROGRESS"
+	// StatusFinished tasks successfully finished.
+	StatusFinished = "FINISHED"
+	// StatusFailed task failed.
+	StatusFailed = "FAILED"
 )
 
 type HTTPClient interface {
@@ -68,7 +76,7 @@ func NewTask(method string, rawUrl string, headers map[string]string) (*Task, er
 	}, nil
 }
 
-// Start runs a http requests and saves response details on current task.
+// Start runs a http request and saves response details.
 func (t *Task) Start() {
 	t.Status = StatusInProgress
 	req, err := http.NewRequest(t.Method, t.URL.String(), nil)
@@ -94,7 +102,7 @@ func (t *Task) Start() {
 	t.Succeed(resp)
 }
 
-// Fail change status to failed and sets a new error.
+// Fail change status to failed and sets an error.
 func (t *Task) Fail(err error) {
 	t.Status = StatusFailed
 	t.Error = err
