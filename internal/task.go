@@ -10,6 +10,8 @@ import (
 
 var (
 	ErrInvalidTaskUrl = errors.New("given url is invalid")
+	ErrCreateNewRequest = errors.New("fail when create a http request")
+	ErrSendRequest = errors.New("fail when send a http request")
 )
 
 const (
@@ -28,7 +30,7 @@ func SetClient(c HTTPClient) {
 	client = c
 }
 
-// Task represents a parts of http request we need to send.
+// Task represents a details of http request we need to send.
 type Task struct {
 	ID      uuid.UUID
 	Method  string
@@ -36,14 +38,12 @@ type Task struct {
 	URL     *url.URL
 	Status string
 
+	Error error
 
 	StatusCode int
 	ContentLength int64
 	ResponseBody string
 	ResponseHeaders map[string][]string
-
-	done chan struct{}
-	errors chan error
 }
 
 // NewTask creates a new task from given data.
@@ -60,18 +60,15 @@ func NewTask(method string, rawUrl string, headers map[string]string) (*Task, er
 		Method:  method,
 		Headers: headers,
 		Status:  StatusReady,
-		done: 	 make(chan struct{}),
-		errors:  make(chan error),
 	}, nil
 }
 
-// Start runs tasks and send error to errors channel if something get wrong,
-// otherwise create response and sends it to results channel.
+// Start runs a http requests and saves response details on current task.
 func (t *Task) Start() {
 	t.Status = StatusInProgress
 	req, err := http.NewRequest(t.Method, t.URL.String(), nil)
 	if err != nil {
-		t.Fail(err)
+		t.Fail(ErrCreateNewRequest)
 		return
 	}
 
@@ -81,26 +78,27 @@ func (t *Task) Start() {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		t.Fail(err)
+		t.Fail(ErrSendRequest)
 		return
 	}
 
 	t.Succeed(resp)
 }
 
-// Fail sends error to errors channel.
+// Fail change status to failed and sets a new error.
 func (t *Task) Fail(err error) {
 	t.Status = StatusFailed
-	t.errors <- err
+	t.Error = err
 }
 
-// Succeed reads response body and sends response to results channel.
+// Succeed reads response body and changes status to finished.
 func (t *Task) Succeed(resp *http.Response) {
 	defer resp.Body.Close()
 
 	bs, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Fail(err)
+		return
 	}
 
 	t.Status = StatusFinished
@@ -109,18 +107,4 @@ func (t *Task) Succeed(resp *http.Response) {
 	t.ResponseHeaders = resp.Header
 	t.ContentLength = resp.ContentLength
 	t.Status = StatusFinished
-	close(t.done)
-}
-
-// Result waits for error or result from task's channels.
-func (t *Task) Result() error {
-	defer close(t.errors)
-
-	select {
-		case <-t.done:
-			return nil
-
-		case err := <-t.errors:
-			return err
-	}
 }

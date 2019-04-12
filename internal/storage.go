@@ -23,13 +23,7 @@ func (s *MemoryStorage) Add(task *Task) {
 func (s *MemoryStorage) Find(id uuid.UUID) *Task {
 	s.RLock()
 	defer s.RUnlock()
-
-	t, ok := s.tasks[id]
-	if !ok {
-		return nil
-	}
-
-	return t
+	return s.tasks[id]
 }
 
 func (s *MemoryStorage) FindAll() []*Task {

@@ -2,9 +2,11 @@ package internal
 
 import (
 	"errors"
+	"github.com/satori/go.uuid"
 )
 
 var ErrServiceOverloaded = errors.New("too many requests are handling, service overloaded")
+var ErrTaskNotFound = errors.New("could not find task with given id")
 
 type Scheduler struct {
 	tasks chan *Task
@@ -48,4 +50,13 @@ func (s Scheduler) Schedule(url, method string, headers map[string]string) (*Tas
 
 func (s Scheduler) FindAll() []*Task {
 	return s.storage.FindAll()
+}
+
+func (s *Scheduler) FindById(id uuid.UUID) (*Task, error) {
+	task := s.storage.Find(id)
+	if task == nil {
+		return nil, ErrTaskNotFound
+	}
+
+	return task, nil
 }

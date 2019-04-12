@@ -15,6 +15,8 @@ type Handler struct {
 }
 
 var ErrInvalidRequestBody = errors.New("could not decode request body")
+var ErrInvalidId = errors.New("invalid id")
+
 
 func NewHandler(sc *internal.Scheduler) *mux.Router {
 	h := &Handler{
@@ -23,6 +25,7 @@ func NewHandler(sc *internal.Scheduler) *mux.Router {
 	r := mux.NewRouter()
 	r.HandleFunc("/tasks", h.Create).Methods("POST")
 	r.HandleFunc("/tasks", h.GetAll).Methods("GET")
+	r.HandleFunc("/tasks/{id}", h.GetById).Methods("GET")
 	r.HandleFunc("/tasks/{id}", h.Delete).Methods("DELETE")
 	return r
 }
@@ -35,6 +38,7 @@ type RequestTask struct {
 
 type ResponseTask struct {
 	ID uuid.UUID `json:"id"`
+	URL string `json:"url"`
 	Status string `json:"status"`
 	StatusCode int `json:"statusCode,omitempty"`
 	Headers map[string][]string `json:"headers,omitempty"`
@@ -47,10 +51,15 @@ func NewResponseTask(t *internal.Task) *ResponseTask {
 		ID:             t.ID,
 		Status:         t.Status,
 		StatusCode:     t.StatusCode,
+		URL: 			t.URL.String(),
 		Headers:        t.ResponseHeaders,
-		ContentLength: t.ContentLength,
+		ContentLength:   t.ContentLength,
 		ResponseBody:   t.ResponseBody,
 	}
+}
+
+type ResponseCreateResult struct {
+	ID uuid.UUID `json:"id"`
 }
 
 func (h Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -68,14 +77,13 @@ func (h Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = task.Result()
-	if err != nil {
-		h.Error(w, err)
-	}
+	bs, err := json.Marshal(ResponseCreateResult{
+		ID: task.ID,
+	})
 
-	bs, err := json.Marshal(NewResponseTask(task))
 	if err != nil {
 		h.Error(w,err)
+		return
 	}
 
 	_, err = w.Write(bs)
@@ -87,7 +95,8 @@ func (h Handler) Create(w http.ResponseWriter, r *http.Request) {
 func (h Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	tasks := h.sc.FindAll()
-	responseTasks := make([]*ResponseTask, len(tasks))
+
+	var responseTasks []*ResponseTask
 	for _, t := range tasks {
 		responseTasks = append(responseTasks, NewResponseTask(t))
 	}
@@ -95,11 +104,37 @@ func (h Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 	bs, err := json.Marshal(responseTasks)
 	if err != nil {
 		h.Error(w,err)
+		return
 	}
 
 	_, err = w.Write(bs)
 	if err != nil {
 		log.Println("could not write response for tasks")
+	}
+}
+
+func (h Handler) GetById(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	id := uuid.FromStringOrNil(mux.Vars(r)["id"])
+	if id == uuid.Nil {
+		h.Error(w,ErrInvalidId)
+		return
+	}
+
+	task, err := h.sc.FindById(id)
+	if err != nil {
+		h.Error(w,err)
+		return
+	}
+	bs, err := json.Marshal(NewResponseTask(task))
+	if err != nil {
+		h.Error(w,err)
+		return
+	}
+
+	_, err = w.Write(bs)
+	if err != nil {
+		log.Printf("could not write response for task with id: %v", id)
 	}
 }
 

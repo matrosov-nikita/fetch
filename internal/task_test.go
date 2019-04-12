@@ -2,7 +2,6 @@ package internal
 
 import (
 	"errors"
-	"fmt"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/suite"
 	"strings"
@@ -34,23 +33,21 @@ func (s *TaskSuite) TestGivenCreatedTaskReturnNotNilId() {
 }
 
 func (s *TaskSuite) TestFailureWhenCreateRequest() {
-	t, err := NewTask("@", "http://google.ru", map[string]string{
-		"test": "test",
-	})
-	go t.Start()
-	err = t.Result()
-	s.NotNil(err)
+	t, _ := NewTask("@", "http://google.ru", nil)
+
+	t.Start()
+	s.Equal(ErrCreateNewRequest, t.Error)
 	s.Equal(StatusFailed, t.Status)
 }
 
 func (s *TaskSuite) TestFailureFromClient() {
-	t, err := NewTask("GET", "http://google.ru", map[string]string{
+	t, _ := NewTask("GET", "http://google.ru", map[string]string{
 		"test": "test",
 	})
 	s.client.err = errors.New("some error")
-	go t.Start()
-	err = t.Result()
-	s.Equal(s.client.err, err)
+
+	t.Start()
+	s.Equal(t.Error, ErrSendRequest)
 	s.Equal(StatusFailed, t.Status)
 	s.Equal("test", s.client.req.Header.Get("test"))
 }
@@ -59,10 +56,8 @@ func (s *TaskSuite) TestSucceedTaskReturnsResponse() {
 	t, err := NewTask("GET", "http://google.ru", map[string]string{
 		"test": "test",
 	})
-	go t.Start()
-	err = t.Result()
 
-	fmt.Println(t)
+	t.Start()
 	s.Nil(err)
 	s.Equal(StatusFinished, t.Status)
 	s.Equal("some text there", t.ResponseBody)
