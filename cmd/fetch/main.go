@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fetch/internal"
+	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"os"
@@ -21,13 +22,16 @@ func main() {
 	storage := internal.NewMemoryStorage()
 	sc := internal.NewScheduler(tasksMaxCount, workersCount, storage)
 
+	r := mux.NewRouter()
 	h := NewHandler(sc)
+	h.Attach(r)
+
 	srv := &http.Server{
 		Addr:         addr,
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,
-		Handler: h,
+		Handler: r,
 	}
 
 	go func() {

@@ -63,8 +63,8 @@ func (s *Scheduler) FindById(id uuid.UUID) (*Task, error) {
 
 func (s *Scheduler) Delete(id uuid.UUID) {
 	task := s.storage.Find(id)
-	if task == nil {
-		task.Cancel()
+	if task != nil {
+		task.cancel()
 	}
 
 	s.storage.Delete(id)

@@ -64,6 +64,25 @@ func (s *TaskSuite) TestSucceedTaskReturnsResponse() {
 	s.True(s.client.response.closeCalled)
 }
 
+func (s *TaskSuite) TestFailReadResponseBody() {
+	s.client.response.Reader = &failReader{}
+	t, _ := NewTask("GET", "http://google.ru", map[string]string{
+		"test": "test",
+	})
+
+	t.Start()
+	s.Equal(StatusFailed, t.Status)
+	s.Equal(t.Error, ErrReadResponseBody)
+}
+
 func TestTaskSuite(t *testing.T) {
 	suite.Run(t, new(TaskSuite))
 }
+
+type failReader struct {}
+
+func (*failReader) Read(p []byte) (n int, err error) {
+	return 0, errors.New("some error")
+}
+
+

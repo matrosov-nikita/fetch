@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/satori/go.uuid"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 )
@@ -14,6 +13,7 @@ var (
 	ErrInvalidTaskUrl = errors.New("given url is invalid")
 	ErrCreateNewRequest = errors.New("fail when create a http request")
 	ErrSendRequest = errors.New("fail when send a http request")
+	ErrReadResponseBody = errors.New("fail when read response body")
 )
 
 const (
@@ -87,7 +87,6 @@ func (t *Task) Start() {
 
 	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
-		log.Println(err)
 		t.Fail(ErrSendRequest)
 		return
 	}
@@ -107,7 +106,7 @@ func (t *Task) Succeed(resp *http.Response) {
 
 	bs, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		t.Fail(err)
+		t.Fail(ErrReadResponseBody)
 		return
 	}
 
@@ -116,9 +115,4 @@ func (t *Task) Succeed(resp *http.Response) {
 	t.ResponseBody = string(bs)
 	t.ResponseHeaders = resp.Header
 	t.ContentLength = resp.ContentLength
-	t.Status = StatusFinished
-}
-
-func (t *Task) Cancel() {
-	t.cancel()
 }

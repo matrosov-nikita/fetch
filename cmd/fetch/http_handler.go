@@ -4,68 +4,46 @@ import (
 	"encoding/json"
 	"errors"
 	"fetch/internal"
-	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/satori/go.uuid"
 	"log"
 	"net/http"
 )
 
+// Handler represents http router for handling API requests.
 type Handler struct {
 	sc *internal.Scheduler
+	router *mux.Router
 }
 
+// ErrInvalidRequestBody happens when request body can not be decoded from JSON.
 var ErrInvalidRequestBody = errors.New("could not decode request body")
+// ErrInvalidId happens when given id can not be parsed from string.
 var ErrInvalidId = errors.New("could not parse id of task")
 
-
-func NewHandler(sc *internal.Scheduler) *mux.Router {
-	h := &Handler{
+// NewHandler creates new handler.
+func NewHandler(sc *internal.Scheduler) *Handler {
+	return &Handler{
 		sc:sc,
 	}
-	r := mux.NewRouter()
+}
+
+// Attach attaches new API handlers to given router.
+func (h *Handler) Attach(r *mux.Router) {
 	r.HandleFunc("/tasks", h.Create).Methods("POST")
 	r.HandleFunc("/tasks", h.GetAll).Methods("GET")
 	r.HandleFunc("/tasks/{id}", h.GetById).Methods("GET")
 	r.HandleFunc("/tasks/{id}", h.Delete).Methods("DELETE")
-	return r
 }
 
+// RequestTask represents input data for creating task.
 type RequestTask struct {
-	URL string `json:"url"`
-	Method string `json:"method"`
+	URL string `json:"url" example:"https://google.ru"`
+	Method string `json:"method" example:"GET"`
 	Headers map[string]string `json:"headers"`
 }
 
-type ResponseTask struct {
-	ID uuid.UUID `json:"id"`
-	URL string `json:"url"`
-	Status string `json:"status"`
-	StatusCode int `json:"statusCode,omitempty"`
-	Headers map[string][]string `json:"headers,omitempty"`
-	ContentLength int64 `json:"contentLength,omitempty"`
-	ResponseBody string `json:"responseBody,omitempty"`
-	Error string `json:"error,omitempty"`
-}
-
-func NewResponseTask(t *internal.Task) *ResponseTask {
-	rt :=  &ResponseTask{
-		ID:             t.ID,
-		Status:         t.Status,
-		StatusCode:     t.StatusCode,
-		URL: 			t.URL.String(),
-		Headers:        t.ResponseHeaders,
-		ContentLength:   t.ContentLength,
-		ResponseBody:   t.ResponseBody,
-	}
-
-	if t.Error != nil {
-		rt.Error = t.Error.Error()
-	}
-
-	return rt
-}
-
+// ResponseCreateResult represents output data after creating task.
 type ResponseCreateResult struct {
 	ID uuid.UUID `json:"id"`
 }
@@ -104,9 +82,9 @@ func (h Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	tasks := h.sc.FindAll()
 
-	var responseTasks []*ResponseTask
-	for _, t := range tasks {
-		responseTasks = append(responseTasks, NewResponseTask(t))
+	responseTasks := make([]*ResponseTask, len(tasks))
+	for i,t := range tasks {
+		responseTasks[i] = NewResponseTask(t)
 	}
 
 	bs, err := json.Marshal(responseTasks)
@@ -155,9 +133,16 @@ func (h Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.sc.Delete(id)
+	bs, err := json.Marshal(ResponseCreateResult{
+		ID: id,
+	})
 
-	w.WriteHeader(http.StatusOK)
-	_, err := w.Write([]byte(fmt.Sprintf("request wit id %v was deleted", id)))
+	if err != nil {
+		h.Error(w,err)
+		return
+	}
+
+	_, err = w.Write(bs)
 	if err != nil {
 		log.Printf("could not write response for deleted task with id: %v", id)
 	}
@@ -165,12 +150,55 @@ func (h Handler) Delete(w http.ResponseWriter, r *http.Request) {
 
 
 func (h Handler) Error(w http.ResponseWriter, e error) {
+	err := customError{Error: e.Error()}
 	switch e {
 	case internal.ErrInvalidTaskUrl, ErrInvalidRequestBody:
-		http.Error(w, e.Error(), http.StatusBadRequest)
+		err.statusCode = http.StatusBadRequest
+	case internal.ErrTaskNotFound:
+		err.statusCode = http.StatusNotFound
 	case internal.ErrServiceOverloaded:
-		http.Error(w, e.Error(), http.StatusServiceUnavailable)
+		err.statusCode = http.StatusServiceUnavailable
 	default:
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		err.statusCode = http.StatusInternalServerError
+		err.Error = "Internal Server Error"
 	}
+
+	bs, _ := json.Marshal(e)
+	w.WriteHeader(err.statusCode)
+	w.Write(bs)
+}
+
+
+type ResponseTask struct {
+	ID uuid.UUID `json:"id"`
+	URL string `json:"url"`
+	Status string `json:"status"`
+	StatusCode int `json:"statusCode,omitempty"`
+	Headers map[string][]string `json:"headers,omitempty"`
+	ContentLength int64 `json:"contentLength,omitempty"`
+	ResponseBody string `json:"responseBody,omitempty"`
+	Error string `json:"error,omitempty"`
+}
+
+func NewResponseTask(t *internal.Task) *ResponseTask {
+	rt :=  &ResponseTask{
+		ID:             t.ID,
+		Status:         t.Status,
+		StatusCode:     t.StatusCode,
+		URL: 			t.URL.String(),
+		Headers:        t.ResponseHeaders,
+		ContentLength:   t.ContentLength,
+		ResponseBody:   t.ResponseBody,
+	}
+
+	if t.Error != nil {
+		rt.Error = t.Error.Error()
+	}
+
+	return rt
+}
+
+type customError struct {
+	Error string `json:"error"`
+	statusCode int
 }
