@@ -9,7 +9,7 @@ var ErrServiceOverloaded = errors.New("too many requests are handling, service o
 var ErrTaskNotFound = errors.New("could not find task with given id")
 
 type Scheduler struct {
-	tasks chan *Task
+	tasks   chan *Task
 	storage *MemoryStorage
 }
 
@@ -21,11 +21,11 @@ func worker(tasks <-chan *Task) {
 
 func NewScheduler(maxCap, workersCount int, storage *MemoryStorage) *Scheduler {
 	sc := &Scheduler{
-		tasks: make(chan *Task, maxCap),
-		storage:storage,
+		tasks:   make(chan *Task, maxCap),
+		storage: storage,
 	}
 
-	for i:=0; i < workersCount; i++ {
+	for i := 0; i < workersCount; i++ {
 		go worker(sc.tasks)
 	}
 
@@ -33,16 +33,16 @@ func NewScheduler(maxCap, workersCount int, storage *MemoryStorage) *Scheduler {
 }
 
 func (s Scheduler) Schedule(url, method string, headers map[string]string) (*Task, error) {
-	t, err := NewTask(method,url,headers)
+	t, err := NewTask(method, url, headers)
 	if err != nil {
 		return nil, err
 	}
 
 	select {
-		case s.tasks <- t:
-			s.storage.Add(t)
-		default:
-			return nil, ErrServiceOverloaded
+	case s.tasks <- t:
+		s.storage.Add(t)
+	default:
+		return nil, ErrServiceOverloaded
 	}
 
 	return t, nil

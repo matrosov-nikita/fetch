@@ -40,9 +40,6 @@ func (s *MemoryStorage) FindAll() []*Task {
 
 func (s *MemoryStorage) Delete(id uuid.UUID) {
 	s.Lock()
-	defer  s.Unlock()
+	defer s.Unlock()
 	delete(s.tasks, id)
 }
-
-
-

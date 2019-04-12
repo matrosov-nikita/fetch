@@ -28,14 +28,14 @@ func (s *SchedulerSuite) TestGivenErrorOnTaskCreationReturnError() {
 }
 
 func (s *SchedulerSuite) TestGivenNewTaskWhenShedulerOverloadedReturnError() {
-	sc := NewScheduler(0,0, s.storage)
+	sc := NewScheduler(0, 0, s.storage)
 	t, err := sc.Schedule("http://google.ru", "GET", nil)
 	s.Nil(t)
 	s.Equal(ErrServiceOverloaded, err)
 }
 
 func (s *SchedulerSuite) TestGivenSchedulerNewTaskReturnTaskInProgress() {
-	sc := NewScheduler(1,4, s.storage)
+	sc := NewScheduler(1, 4, s.storage)
 	t, err := sc.Schedule("http://google.ru", "GET", nil)
 
 	s.Nil(err)
@@ -43,21 +43,21 @@ func (s *SchedulerSuite) TestGivenSchedulerNewTaskReturnTaskInProgress() {
 }
 
 func (s *SchedulerSuite) TestReturnAllCurrentTasks() {
-	sc := NewScheduler(1,4, s.storage)
+	sc := NewScheduler(1, 4, s.storage)
 	_, err := sc.Schedule("http://google.ru", "GET", nil)
 
 	s.Nil(err)
-	s.Len(sc.FindAll(),1)
+	s.Len(sc.FindAll(), 1)
 }
 
 func (s *SchedulerSuite) TestGivenNotExistingIdReturnError() {
-	sc := NewScheduler(1,4, s.storage)
+	sc := NewScheduler(1, 4, s.storage)
 	_, err := sc.FindById(uuid.NewV4())
 	s.Equal(ErrTaskNotFound, err)
 }
 
 func (s *SchedulerSuite) TestGivenRealIdReturnTask() {
-	sc := NewScheduler(1,4, s.storage)
+	sc := NewScheduler(1, 4, s.storage)
 	t, err := sc.Schedule("http://google.ru", "GET", nil)
 
 	task, err := sc.FindById(t.ID)
@@ -66,7 +66,7 @@ func (s *SchedulerSuite) TestGivenRealIdReturnTask() {
 }
 
 func (s *SchedulerSuite) TestDeleteExistingTask() {
-	sc := NewScheduler(1,4, s.storage)
+	sc := NewScheduler(1, 4, s.storage)
 	t, _ := sc.Schedule("http://google.ru", "GET", nil)
 	log.Println(t.ID)
 	sc.Delete(t.ID)

@@ -21,7 +21,7 @@ func (s *TaskSuite) SetupTest() {
 }
 
 func (s *TaskSuite) TestGivenInvalidTaskUrlReturnErr() {
-	t, err := NewTask("GET","http://192.168.0.%31/", nil)
+	t, err := NewTask("GET", "http://192.168.0.%31/", nil)
 	s.Equal(ErrInvalidTaskUrl, err)
 	s.Nil(t)
 }
@@ -79,10 +79,8 @@ func TestTaskSuite(t *testing.T) {
 	suite.Run(t, new(TaskSuite))
 }
 
-type failReader struct {}
+type failReader struct{}
 
 func (*failReader) Read(p []byte) (n int, err error) {
 	return 0, errors.New("some error")
 }
-
-

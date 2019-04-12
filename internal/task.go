@@ -10,17 +10,17 @@ import (
 )
 
 var (
-	ErrInvalidTaskUrl = errors.New("given url is invalid")
+	ErrInvalidTaskUrl   = errors.New("given url is invalid")
 	ErrCreateNewRequest = errors.New("fail when create a http request")
-	ErrSendRequest = errors.New("fail when send a http request")
+	ErrSendRequest      = errors.New("fail when send a http request")
 	ErrReadResponseBody = errors.New("fail when read response body")
 )
 
 const (
-	StatusReady string  = "READY"
-	StatusInProgress = "IN PROGRESS"
-	StatusFinished = "FINISHED"
-	StatusFailed = "FAILED"
+	StatusReady      string = "READY"
+	StatusInProgress        = "IN PROGRESS"
+	StatusFinished          = "FINISHED"
+	StatusFailed            = "FAILED"
 )
 
 type HTTPClient interface {
@@ -28,6 +28,7 @@ type HTTPClient interface {
 }
 
 var client HTTPClient
+
 func SetClient(c HTTPClient) {
 	client = c
 }
@@ -38,13 +39,13 @@ type Task struct {
 	Method  string
 	Headers map[string]string
 	URL     *url.URL
-	Status string
+	Status  string
 
 	Error error
 
-	StatusCode int
-	ContentLength int64
-	ResponseBody string
+	StatusCode      int
+	ContentLength   int64
+	ResponseBody    string
 	ResponseHeaders map[string][]string
 
 	cancel context.CancelFunc
@@ -57,7 +58,6 @@ func NewTask(method string, rawUrl string, headers map[string]string) (*Task, er
 	if err != nil {
 		return nil, ErrInvalidTaskUrl
 	}
-
 
 	return &Task{
 		ID:      uuid.NewV4(),

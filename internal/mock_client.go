@@ -6,7 +6,7 @@ import (
 )
 
 type SpyHTTPClient struct {
-	req *http.Request
+	req      *http.Request
 	err      error
 	response *SpyHTTPBody
 }
@@ -15,7 +15,7 @@ func (c *SpyHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	c.req = req
 
 	return &http.Response{
-		Body:       c.response,
+		Body: c.response,
 	}, c.err
 }
 
