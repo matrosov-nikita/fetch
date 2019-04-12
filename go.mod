@@ -1,4 +1,4 @@
-module fetch
+module github.com/matrosov-nikita/fetch
 
 go 1.12
 

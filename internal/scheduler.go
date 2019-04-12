@@ -3,6 +3,7 @@ package internal
 import (
 	"errors"
 	"github.com/satori/go.uuid"
+	"sync"
 )
 
 // ErrServiceOverloaded happens when there is no free space in tasks queue.
@@ -14,9 +15,11 @@ var ErrTaskNotFound = errors.New("could not find task with given id")
 type Scheduler struct {
 	tasks   chan *Task
 	storage *MemoryStorage
+	wg sync.WaitGroup
 }
 
-func worker(tasks <-chan *Task) {
+func (s *Scheduler) worker(tasks <-chan *Task) {
+	defer s.wg.Done()
 	for t := range tasks {
 		t.Start()
 	}
@@ -30,7 +33,8 @@ func NewScheduler(maxCap, workersCount int, storage *MemoryStorage) *Scheduler {
 	}
 
 	for i := 0; i < workersCount; i++ {
-		go worker(sc.tasks)
+		sc.wg.Add(1)
+		go sc.worker(sc.tasks)
 	}
 
 	return sc
@@ -76,4 +80,10 @@ func (s *Scheduler) Delete(id uuid.UUID) {
 	}
 
 	s.storage.Delete(id)
+}
+
+// Close close tasks channel and waits for finish of remaining tasks.
+func (s *Scheduler) Close() {
+	close(s.tasks)
+	s.wg.Wait()
 }

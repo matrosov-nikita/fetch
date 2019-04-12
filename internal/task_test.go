@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/suite"
+	"log"
 	"strings"
 	"testing"
 )

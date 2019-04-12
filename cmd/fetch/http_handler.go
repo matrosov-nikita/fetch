@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fetch/internal"
 	"github.com/gorilla/mux"
+	"github.com/matrosov-nikita/fetch/internal"
 	"github.com/satori/go.uuid"
 	"log"
 	"net/http"

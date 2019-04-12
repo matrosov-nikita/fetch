@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"fetch/internal"
 	"github.com/gorilla/mux"
+	"github.com/matrosov-nikita/fetch/internal"
 	"log"
 	"net/http"
 	"os"
