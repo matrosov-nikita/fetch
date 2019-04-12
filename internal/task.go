@@ -1,9 +1,11 @@
 package internal
 
 import (
+	"context"
 	"errors"
 	"github.com/satori/go.uuid"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 )
@@ -44,6 +46,8 @@ type Task struct {
 	ContentLength int64
 	ResponseBody string
 	ResponseHeaders map[string][]string
+
+	cancel context.CancelFunc
 }
 
 // NewTask creates a new task from given data.
@@ -53,6 +57,7 @@ func NewTask(method string, rawUrl string, headers map[string]string) (*Task, er
 	if err != nil {
 		return nil, ErrInvalidTaskUrl
 	}
+
 
 	return &Task{
 		ID:      uuid.NewV4(),
@@ -67,6 +72,7 @@ func NewTask(method string, rawUrl string, headers map[string]string) (*Task, er
 func (t *Task) Start() {
 	t.Status = StatusInProgress
 	req, err := http.NewRequest(t.Method, t.URL.String(), nil)
+
 	if err != nil {
 		t.Fail(ErrCreateNewRequest)
 		return
@@ -76,8 +82,12 @@ func (t *Task) Start() {
 		req.Header.Set(k, v)
 	}
 
-	resp, err := client.Do(req)
+	ctx, cancel := context.WithCancel(context.Background())
+	t.cancel = cancel
+
+	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
+		log.Println(err)
 		t.Fail(ErrSendRequest)
 		return
 	}
@@ -107,4 +117,8 @@ func (t *Task) Succeed(resp *http.Response) {
 	t.ResponseHeaders = resp.Header
 	t.ContentLength = resp.ContentLength
 	t.Status = StatusFinished
+}
+
+func (t *Task) Cancel() {
+	t.cancel()
 }

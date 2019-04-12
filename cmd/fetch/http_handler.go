@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fetch/internal"
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/satori/go.uuid"
 	"log"
@@ -15,7 +16,7 @@ type Handler struct {
 }
 
 var ErrInvalidRequestBody = errors.New("could not decode request body")
-var ErrInvalidId = errors.New("invalid id")
+var ErrInvalidId = errors.New("could not parse id of task")
 
 
 func NewHandler(sc *internal.Scheduler) *mux.Router {
@@ -44,10 +45,11 @@ type ResponseTask struct {
 	Headers map[string][]string `json:"headers,omitempty"`
 	ContentLength int64 `json:"contentLength,omitempty"`
 	ResponseBody string `json:"responseBody,omitempty"`
+	Error string `json:"error,omitempty"`
 }
 
 func NewResponseTask(t *internal.Task) *ResponseTask {
-	return &ResponseTask{
+	rt :=  &ResponseTask{
 		ID:             t.ID,
 		Status:         t.Status,
 		StatusCode:     t.StatusCode,
@@ -56,6 +58,12 @@ func NewResponseTask(t *internal.Task) *ResponseTask {
 		ContentLength:   t.ContentLength,
 		ResponseBody:   t.ResponseBody,
 	}
+
+	if t.Error != nil {
+		rt.Error = t.Error.Error()
+	}
+
+	return rt
 }
 
 type ResponseCreateResult struct {
@@ -65,7 +73,7 @@ type ResponseCreateResult struct {
 func (h Handler) Create(w http.ResponseWriter, r *http.Request) {
 	var t RequestTask
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
 		h.Error(w, ErrInvalidRequestBody)
 		return
@@ -93,7 +101,7 @@ func (h Handler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) GetAll(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	tasks := h.sc.FindAll()
 
 	var responseTasks []*ResponseTask
@@ -114,7 +122,7 @@ func (h Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) GetById(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	id := uuid.FromStringOrNil(mux.Vars(r)["id"])
 	if id == uuid.Nil {
 		h.Error(w,ErrInvalidId)
@@ -139,7 +147,20 @@ func (h Handler) GetById(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) Delete(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	id := uuid.FromStringOrNil(mux.Vars(r)["id"])
+	if id == uuid.Nil {
+		h.Error(w,ErrInvalidId)
+		return
+	}
 
+	h.sc.Delete(id)
+
+	w.WriteHeader(http.StatusOK)
+	_, err := w.Write([]byte(fmt.Sprintf("request wit id %v was deleted", id)))
+	if err != nil {
+		log.Printf("could not write response for deleted task with id: %v", id)
+	}
 }
 
 

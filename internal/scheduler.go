@@ -60,3 +60,12 @@ func (s *Scheduler) FindById(id uuid.UUID) (*Task, error) {
 
 	return task, nil
 }
+
+func (s *Scheduler) Delete(id uuid.UUID) {
+	task := s.storage.Find(id)
+	if task == nil {
+		task.Cancel()
+	}
+
+	s.storage.Delete(id)
+}
