@@ -15,7 +15,7 @@ var ErrTaskNotFound = errors.New("could not find task with given id")
 type Scheduler struct {
 	tasks   chan *Task
 	storage *MemoryStorage
-	wg sync.WaitGroup
+	wg      sync.WaitGroup
 }
 
 func (s *Scheduler) worker(tasks <-chan *Task) {

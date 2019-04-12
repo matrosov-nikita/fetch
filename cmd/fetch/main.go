@@ -58,6 +58,8 @@ func main() {
 	signal.Notify(shutdownCh, os.Interrupt)
 
 	<-shutdownCh
+	log.Println("Gracefully stopping...")
+	sc.Close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()

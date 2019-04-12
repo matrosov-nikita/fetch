@@ -11,7 +11,6 @@ type SpyHTTPClient struct {
 	err      error
 	response *SpyHTTPBody
 	sync.Mutex
-
 }
 
 func (c *SpyHTTPClient) Do(req *http.Request) (*http.Response, error) {

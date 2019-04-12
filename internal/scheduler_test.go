@@ -9,9 +9,9 @@ import (
 
 type SchedulerSuite struct {
 	suite.Suite
-	storage *MemoryStorage
+	storage             *MemoryStorage
 	overloadedScheduler *Scheduler
-	basicScheduler *Scheduler
+	basicScheduler      *Scheduler
 }
 
 func (s *SchedulerSuite) SetupTest() {
@@ -30,13 +30,11 @@ func (s *SchedulerSuite) TearDownTest() {
 	s.basicScheduler.Close()
 }
 
-
 func (s *SchedulerSuite) TestGivenNewTaskWhenShedulerOverloadedReturnError() {
 	t, err := s.overloadedScheduler.Schedule("http://google.ru", "GET", nil)
 	s.Nil(t)
 	s.Equal(ErrServiceOverloaded, err)
 }
-
 
 func (s *SchedulerSuite) TestGivenErrorOnTaskCreationReturnError() {
 	t, err := s.basicScheduler.Schedule("http://192.168.0.%31/", "GET", nil)
