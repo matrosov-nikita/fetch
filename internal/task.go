@@ -56,11 +56,13 @@ type Task struct {
 	ResponseBody    string
 	ResponseHeaders map[string][]string
 
-	cancel context.CancelFunc
+	Cancel  context.CancelFunc
+	context context.Context
 }
 
 // NewTask creates a new task from given data.
 func NewTask(method string, rawUrl string, headers map[string]string) (*Task, error) {
+	ctx, cancel := context.WithCancel(context.Background())
 	taskUrl, err := url.Parse(rawUrl)
 
 	if err != nil {
@@ -73,6 +75,8 @@ func NewTask(method string, rawUrl string, headers map[string]string) (*Task, er
 		Method:  method,
 		Headers: headers,
 		Status:  StatusReady,
+		Cancel:  cancel,
+		context: ctx,
 	}, nil
 }
 
@@ -90,10 +94,7 @@ func (t *Task) Start() {
 		req.Header.Set(k, v)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	t.cancel = cancel
-
-	resp, err := client.Do(req.WithContext(ctx))
+	resp, err := client.Do(req.WithContext(t.context))
 	if err != nil {
 		t.Fail(ErrSendRequest)
 		return
