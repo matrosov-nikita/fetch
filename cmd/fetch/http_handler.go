@@ -43,11 +43,23 @@ type RequestTask struct {
 	Headers map[string]string `json:"headers"`
 }
 
-// ResponseCreateResult represents output data after creating task.
-type ResponseCreateResult struct {
-	ID uuid.UUID `json:"id"`
+// TaskIDForm represents output data after creating task.
+type TaskIDForm struct {
+	ID uuid.UUID `json:"id" example:"64210195-68be-417e-b439-4fb44c066e1c"`
 }
 
+// Create Создание нового запроса на обработку.
+// @Summary Создание нового запроса на обработку.
+// @Tags tasks
+// @ID create-task
+// @Accept  json
+// @Produce  json
+// @Param data body main.RequestTask true "Структура запроса для добавления нового задания"
+// @Success 200 {object} main.TaskIDForm
+// @Failure 400 {object} main.customError
+// @Failure 500 {object} main.customError
+// @Failure 503 {object} main.customError
+// @Router /tasks [post]
 func (h Handler) Create(w http.ResponseWriter, r *http.Request) {
 	var t RequestTask
 
@@ -63,7 +75,7 @@ func (h Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bs, err := json.Marshal(ResponseCreateResult{
+	bs, err := json.Marshal(TaskIDForm{
 		ID: task.ID,
 	})
 
@@ -78,6 +90,15 @@ func (h Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetAll Получение списка всех заданий.
+// @Summary Получение списка всех заданий.
+// @Tags tasks
+// @ID get-all-task
+// @Accept  json
+// @Produce  json
+// @Success 200 {array} main.ResponseTask
+// @Failure 500 {object} main.customError
+// @Router /tasks [get]
 func (h Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	tasks := h.sc.FindAll()
@@ -99,6 +120,18 @@ func (h Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetById Получение задания по id.
+// @Summary Получение задания по id.
+// @Tags tasks
+// @ID get-task-by-id
+// @Accept  json
+// @Produce  json
+// @Param id path string true "9e86661a-3eb1-4fc3-9221-5f13780c8fde"
+// @Success 200 {object} main.ResponseTask
+// @Failure 400 {object} main.customError
+// @Failure 404 {object} main.customError
+// @Failure 500 {object} main.customError
+// @Router /tasks/{id} [get]
 func (h Handler) GetById(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	id := uuid.FromStringOrNil(mux.Vars(r)["id"])
@@ -124,6 +157,18 @@ func (h Handler) GetById(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Delete Удаление задания.
+// @Summary Удаление задания.
+// @Tags tasks
+// @ID delete-task
+// @Accept  json
+// @Produce  json
+// @Param id path string true "9e86661a-3eb1-4fc3-9221-5f13780c8fde"
+// @Success 200 {object} main.TaskIDForm
+// @Failure 400 {object} main.customError
+// @Failure 404 {object} main.customError
+// @Failure 500 {object} main.customError
+// @Router /tasks/{id} [delete]
 func (h Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	id := uuid.FromStringOrNil(mux.Vars(r)["id"])
@@ -133,7 +178,7 @@ func (h Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.sc.Delete(id)
-	bs, err := json.Marshal(ResponseCreateResult{
+	bs, err := json.Marshal(TaskIDForm{
 		ID: id,
 	})
 
@@ -170,17 +215,21 @@ func (h Handler) Error(w http.ResponseWriter, e error) {
 
 
 type ResponseTask struct {
-	ID uuid.UUID `json:"id"`
-	URL string `json:"url"`
-	Status string `json:"status"`
-	StatusCode int `json:"statusCode,omitempty"`
+	ID uuid.UUID `json:"id" example:"64210195-68be-417e-b439-4fb44c066e1c"`
+	URL string `json:"url" example:"http://google.ru"`
+	Status string `json:"status" example:"FINISHED"`
+	StatusCode int `json:"statusCode,omitempty" example:"403"`
 	Headers map[string][]string `json:"headers,omitempty"`
-	ContentLength int64 `json:"contentLength,omitempty"`
-	ResponseBody string `json:"responseBody,omitempty"`
-	Error string `json:"error,omitempty"`
+	ContentLength int64 `json:"contentLength,omitempty" example:"2343"`
+	ResponseBody string `json:"responseBody,omitempty" example:"response body here"`
+	Error string `json:"error,omitempty" example:"fail when read response body"`
 }
 
 func NewResponseTask(t *internal.Task) *ResponseTask {
+	if t == nil {
+		return nil
+	}
+
 	rt :=  &ResponseTask{
 		ID:             t.ID,
 		Status:         t.Status,
@@ -200,5 +249,5 @@ func NewResponseTask(t *internal.Task) *ResponseTask {
 
 type customError struct {
 	Error string `json:"error"`
-	statusCode int
+	statusCode int `json:"-"`
 }

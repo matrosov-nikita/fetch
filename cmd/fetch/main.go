@@ -11,7 +11,21 @@ import (
 	"runtime"
 	"strconv"
 	"time"
+
 )
+
+// @title Tasks API
+// @version 1.0
+// @description Документация для Tasks API
+
+// @contact.name API Support
+// @contact.email matrosov.nikita94@gmail.com
+
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host localhost:8888
+// @BasePath /
 
 func main() {
 	addr := getEnv("SERVER_ADDRESS", ":8888")

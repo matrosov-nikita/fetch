@@ -1,0 +1,15 @@
+FROM golang:1.12.1 as builder
+WORKDIR /app/fetch
+
+COPY . .
+WORKDIR /app
+RUN go get -u github.com/swaggo/swag/cmd/swag
+
+WORKDIR /app/fetch
+RUN swag init -g cmd/fetch/main.go
+
+FROM swaggerapi/swagger-ui
+
+COPY --from=builder /app/fetch/docs /usr/share/docs
+ENV SWAGGER_JSON=/usr/share/docs/swagger.json
+

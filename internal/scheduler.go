@@ -48,6 +48,7 @@ func (s Scheduler) Schedule(url, method string, headers map[string]string) (*Tas
 	return t, nil
 }
 
+// TODO: сделать постраничное получение заданий.
 func (s Scheduler) FindAll() []*Task {
 	return s.storage.FindAll()
 }
